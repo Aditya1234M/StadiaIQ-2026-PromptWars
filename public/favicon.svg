@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="stadiumGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00e599" />
+      <stop offset="50%" stop-color="#00b8d4" />
+      <stop offset="100%" stop-color="#3d5afe" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <!-- Background Shield/Stadium Bowl -->
+  <rect x="32" y="64" width="448" height="384" rx="192" fill="#0a0f18" stroke="url(#stadiumGrad)" stroke-width="24" filter="url(#glow)" />
+  <!-- Inner Stadium Rings -->
+  <ellipse cx="256" cy="256" rx="160" ry="100" fill="none" stroke="url(#stadiumGrad)" stroke-width="16" stroke-dasharray="20 10" opacity="0.7" />
+  <ellipse cx="256" cy="256" rx="96" ry="56" fill="#00e599" fill-opacity="0.15" stroke="#00e599" stroke-width="12" />
+  <!-- AI Pulse Center -->
+  <circle cx="256" cy="256" r="24" fill="url(#stadiumGrad)" filter="url(#glow)" />
+  <!-- Dynamic AI Rays -->
+  <path d="M256 120 L256 160 M256 352 L256 392 M120 256 L160 256 M352 256 L392 256" stroke="#00e599" stroke-width="12" stroke-linecap="round" />
+  <!-- Soccer Ball Accent Hexagon -->
+  <polygon points="256,236 273,248 266,268 246,268 239,248" fill="#ffffff" opacity="0.9" />
+</svg>

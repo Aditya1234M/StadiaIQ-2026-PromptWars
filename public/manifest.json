@@ -1,0 +1,18 @@
+{
+  "name": "StadiaIQ 2026 — FIFA World Cup Smart Stadium & Operations AI",
+  "short_name": "StadiaIQ",
+  "description": "GenAI-enabled smart stadium operations, crowd navigation, accessibility, and real-time decision support for FIFA World Cup 2026.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080d14",
+  "theme_color": "#00e599",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
