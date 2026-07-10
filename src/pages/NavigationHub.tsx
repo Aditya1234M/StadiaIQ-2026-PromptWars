@@ -1,26 +1,45 @@
 /**
- * @description Interactive stadium navigation map featuring gate capacity meters, restroom queues, concessions, and accessible routing.
+ * @description Interactive stadium navigation map featuring gate capacity meters, restroom queues, concessions, accessible routing, and mobile in-seat food ordering.
  */
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { formatWaitTime, formatCapacityColor } from '../utils/formatters';
-import { MapPin, Utensils, Bath, Navigation, CheckCircle2, Sparkles, Filter } from 'lucide-react';
+import { MapPin, Utensils, Bath, Navigation, CheckCircle2, Sparkles, Filter, ShoppingBag } from 'lucide-react';
 
 type FilterType = 'all' | 'gates' | 'concessions' | 'restrooms' | 'accessible';
 
 export const NavigationHub: React.FC = () => {
-  const { currentStadium, state, t } = useApp();
+  const { currentStadium, state, t, placeFoodOrder } = useApp();
   const [filter, setFilter] = useState<FilterType>('all');
   const [selectedItem, setSelectedItem] = useState<{ id: string; name: string; section: string; wait: number; type: string; accessible?: boolean } | null>(null);
   const [routeGenerated, setRouteGenerated] = useState<boolean>(false);
+  const [showOrderModal, setShowOrderModal] = useState<boolean>(false);
+  const [orderType, setOrderType] = useState<'in-seat' | 'express-pickup'>('in-seat');
+  const [orderSuccess, setOrderSuccess] = useState<boolean>(false);
 
   const handleSelect = (item: { id: string; name: string; section: string; wait: number; type: string; accessible?: boolean }) => {
     setSelectedItem(item);
     setRouteGenerated(false);
+    setShowOrderModal(false);
+    setOrderSuccess(false);
   };
 
   const generateRoute = () => {
     setRouteGenerated(true);
+  };
+
+  const handlePlaceOrder = () => {
+    if (!selectedItem) return;
+    placeFoodOrder({
+      concessionId: selectedItem.id,
+      concessionName: selectedItem.name,
+      items: [{ name: `${selectedItem.type.split('(')[1]?.replace(')', '') || 'Specialty'} Combo Meal`, quantity: 1, price: 18.5 }],
+      totalAmount: 18.5,
+      deliveryOption: orderType,
+      deliveryLocation: orderType === 'in-seat' ? state.profile.ticketSection : `Express Counter at ${selectedItem.name}`,
+    });
+    setOrderSuccess(true);
+    setShowOrderModal(false);
   };
 
   return (
@@ -28,7 +47,7 @@ export const NavigationHub: React.FC = () => {
       <div className="page-header">
         <div>
           <h1 className="page-title">{t('navigate')}</h1>
-          <p className="page-subtitle">Real-time turnstile telemetry, concession queues, and step-free wheelchair routing at {currentStadium.name}.</p>
+          <p className="page-subtitle">Real-time turnstile telemetry, concession queues, mobile in-seat food delivery, and step-free wheelchair routing at {currentStadium.name}.</p>
         </div>
       </div>
 
@@ -103,12 +122,15 @@ export const NavigationHub: React.FC = () => {
                       <div style={{ fontWeight: 700, color: '#fff' }}>{con.name}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Section: {con.section} • Category: <strong style={{ color: 'var(--accent)' }}>{con.category.toUpperCase()}</strong></div>
                     </div>
-                    <div className="badge">{formatWaitTime(con.waitTimeMinutes)}</div>
+                    <div className="flex items-center gap-xs">
+                      <span className="badge" style={{ background: 'rgba(0, 184, 212, 0.15)', color: 'var(--accent)', border: 'none', fontSize: '0.7rem' }}>🍔 Order Mobile</span>
+                      <div className="badge">{formatWaitTime(con.waitTimeMinutes)}</div>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
-           )}
+          )}
 
           {/* Restrooms & Sensory Relief Section */}
           {(filter === 'all' || filter === 'restrooms' || filter === 'accessible') && (
@@ -144,12 +166,22 @@ export const NavigationHub: React.FC = () => {
           )}
         </div>
 
-        {/* Right Column: AI Route Planner Card */}
+        {/* Right Column: AI Route Planner & Mobile Order Card */}
         <div className="card" style={{ position: 'sticky', top: '90px' }}>
           <h2 style={{ fontSize: '1.25rem', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Navigation size={20} color="var(--primary)" />
-            <span>AI Route Planner</span>
+            <span>AI Route Planner & Action Hub</span>
           </h2>
+
+          {orderSuccess && (
+            <div className="animate-fade-in" style={{ background: 'rgba(0, 229, 153, 0.15)', padding: '14px', borderRadius: '10px', border: '1px solid var(--primary)', marginBottom: '16px' }}>
+              <div className="flex items-center gap-xs" style={{ color: 'var(--primary)', fontWeight: 700, fontSize: '0.9rem' }}>
+                <CheckCircle2 size={18} />
+                <span>Order Placed Successfully!</span>
+              </div>
+              <p style={{ fontSize: '0.8rem', color: '#fff', marginTop: '4px' }}>Your concession order has been logged and is tracked on your Matchday Dashboard.</p>
+            </div>
+          )}
 
           {selectedItem ? (
             <div className="flex flex-col gap-md">
@@ -161,6 +193,48 @@ export const NavigationHub: React.FC = () => {
                   Live Queue Wait Time: <strong style={{ color: '#fff' }}>{formatWaitTime(selectedItem.wait)}</strong>
                 </div>
               </div>
+
+              {/* Concession Mobile Ordering Action */}
+              {selectedItem.type.includes('Concession') && (
+                <div style={{ background: 'rgba(0, 184, 212, 0.1)', padding: '14px', borderRadius: '10px', border: '1px solid var(--accent)' }}>
+                  <div className="flex justify-between items-center" style={{ marginBottom: '10px' }}>
+                    <div className="flex items-center gap-xs" style={{ color: 'var(--accent)', fontWeight: 700 }}>
+                      <ShoppingBag size={18} />
+                      <span>Mobile Concession Ordering</span>
+                    </div>
+                    <span className="badge" style={{ background: 'var(--accent)', color: '#000' }}>$18.50 COMBO</span>
+                  </div>
+
+                  {showOrderModal ? (
+                    <div className="flex flex-col gap-sm animate-fade-in">
+                      <div style={{ fontSize: '0.8rem', color: '#fff' }}>Select Delivery Method:</div>
+                      <div className="grid-2" style={{ gap: '8px' }}>
+                        <button
+                          onClick={() => setOrderType('in-seat')}
+                          className="btn"
+                          style={{ padding: '8px', fontSize: '0.75rem', background: orderType === 'in-seat' ? 'var(--accent)' : 'var(--bg-tertiary)', color: orderType === 'in-seat' ? '#000' : '#fff', fontWeight: 700 }}
+                        >
+                          🪑 In-Seat Delivery ({state.profile.ticketSection})
+                        </button>
+                        <button
+                          onClick={() => setOrderType('express-pickup')}
+                          className="btn"
+                          style={{ padding: '8px', fontSize: '0.75rem', background: orderType === 'express-pickup' ? 'var(--accent)' : 'var(--bg-tertiary)', color: orderType === 'express-pickup' ? '#000' : '#fff', fontWeight: 700 }}
+                        >
+                          ⚡ Express Turnstile Pickup
+                        </button>
+                      </div>
+                      <button onClick={handlePlaceOrder} className="btn btn-primary" style={{ width: '100%', marginTop: '8px' }}>
+                        <span>Confirm Order & Track on Dashboard</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setShowOrderModal(true)} className="btn btn-secondary" style={{ width: '100%', borderColor: 'var(--accent)', color: 'var(--accent)' }}>
+                      <span>Order Food for In-Seat Delivery or Pickup</span>
+                    </button>
+                  )}
+                </div>
+              )}
 
               {!routeGenerated ? (
                 <button onClick={generateRoute} className="btn btn-primary" style={{ width: '100%', padding: '12px' }}>
@@ -175,7 +249,7 @@ export const NavigationHub: React.FC = () => {
                   </div>
                   <ol style={{ paddingLeft: '20px', fontSize: '0.85rem', color: '#fff', display: 'flex', flexDirection: 'column', gap: '8px', lineHeight: 1.4 }}>
                     <li>Start from your seat at <strong>{state.profile.ticketSection}</strong>.</li>
-                    <li>Take the step-free concourse ramp toward <strong>Section 115</strong>.</li>
+                    <li>Take the step-free concourse ramp toward <strong>Section {selectedItem.section}</strong>.</li>
                     <li>Avoid Main Plaza (currently 88% congested); use East Corridor.</li>
                     <li>Arrive at <strong>{selectedItem.name}</strong> (Section {selectedItem.section}).</li>
                   </ol>
@@ -185,7 +259,7 @@ export const NavigationHub: React.FC = () => {
           ) : (
             <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-secondary)' }}>
               <MapPin size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
-              <p style={{ fontSize: '0.9rem' }}>Select any gate, concession stand, or restroom on the left to calculate an instant step-free AI walking route!</p>
+              <p style={{ fontSize: '0.9rem' }}>Select any gate, concession stand, or restroom on the left to calculate an instant step-free AI walking route or order in-seat food!</p>
             </div>
           )}
         </div>
@@ -193,3 +267,4 @@ export const NavigationHub: React.FC = () => {
     </div>
   );
 };
+

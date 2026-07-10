@@ -1,18 +1,18 @@
 /**
- * @description Main dashboard displaying live attendance, AI crowd routing recommendations, gate congestion summary, and quick actions.
+ * @description Main dashboard displaying live attendance, AI crowd routing recommendations, gate congestion summary, digital ticket pass, and quick actions.
  */
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { getAICrowdRecommendation } from '../utils/aiEngine';
 import { formatWaitTime, formatCapacityColor } from '../utils/formatters';
-import { Users, Sparkles, MapPin, ArrowRight, MessageSquare, Bus, HeartHandshake, AlertTriangle } from 'lucide-react';
+import { Users, Sparkles, MapPin, ArrowRight, MessageSquare, HeartHandshake, AlertTriangle, QrCode, ShieldAlert, Utensils, CheckCircle2 } from 'lucide-react';
 
 interface DashboardProps {
   setActiveTab: (tab: string) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
-  const { currentStadium, state, t, updateProfile } = useApp();
+  const { currentStadium, state, t, updateProfile, toggleQRStatus, triggerSOS, cancelSOS } = useApp();
 
   const aiRec = getAICrowdRecommendation(currentStadium, state.profile.accessibleNeeds, state.language);
 
@@ -43,6 +43,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
 
   return (
     <div className="page animate-fade-in" role="main" aria-label="Stadium Dashboard">
+      {/* Active Emergency SOS Alert Banner */}
+      {state.activeSOS && (
+        <div className="sos-alert-card">
+          <div className="flex justify-between items-center gap-md">
+            <div className="flex items-center gap-sm">
+              <ShieldAlert size={28} color="#ef4444" />
+              <div>
+                <div className="text-danger" style={{ fontWeight: 800, fontSize: '1.1rem' }}>
+                  ⚠️ EMERGENCY {state.activeSOS.type.toUpperCase()} SOS DISPATCHED
+                </div>
+                <div className="text-primary" style={{ fontSize: '0.85rem', marginTop: '4px' }}>
+                  Dispatch Status: <strong>{state.activeSOS.dispatchStatus.toUpperCase()}</strong> • Target Location: {state.activeSOS.userLocation}
+                </div>
+              </div>
+            </div>
+            <button onClick={cancelSOS} className="btn btn-secondary" style={{ border: '1px solid #ef4444' }}>
+              <span>Cancel / All Clear</span>
+            </button>
+          </div>
+          <div className="ticket-section-grid" style={{ marginTop: '14px', background: 'rgba(0,0,0,0.4)', gridTemplateColumns: '1fr' }}>
+            <div className="ticket-field-label" style={{ color: '#ef4444' }}>STEP-FREE EVACUATION & SAFETY ROUTE</div>
+            <ul style={{ paddingLeft: '20px', fontSize: '0.85rem', color: '#fff', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {state.activeSOS.evacuationPath.map((step, idx) => (
+                <li key={idx}>{step}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
       {/* Staff Mode Banner Alert */}
       {state.mode === 'staff' && (
         <div className="card" style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
@@ -61,34 +91,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
       )}
 
       {/* Hero Match Card */}
-      <div className="card" style={{ background: 'linear-gradient(135deg, rgba(0, 229, 153, 0.12), rgba(0, 184, 212, 0.08))', borderColor: 'rgba(0, 229, 153, 0.3)' }}>
-        <div className="flex justify-between items-center" style={{ flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+      <div className="card hero-card">
+        <div className="hero-header">
           <div>
             <span className="badge" style={{ marginBottom: '8px' }}>{currentStadium.city}</span>
             <h1 className="page-title" style={{ fontSize: '2rem' }}>{currentStadium.matchTitle}</h1>
             <p className="page-subtitle">{currentStadium.matchTime} • Kickoff Countdown: <strong>{pad(countdown.h)}:{pad(countdown.m)}:{pad(countdown.s)}</strong></p>
           </div>
-          <div style={{ textAlign: 'right', background: 'rgba(8, 13, 20, 0.6)', padding: '12px 20px', borderRadius: '12px', border: '1px solid var(--border)' }}>
-            <div className="flex items-center gap-xs" style={{ color: 'var(--primary)', fontWeight: 700, fontSize: '0.8rem', justifyContent: 'flex-end' }}>
+          <div className="stat-box">
+            <div className="stat-box-title">
               <Users size={14} />
               <span>{t('attendance')}</span>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fff' }}>
-              {currentStadium.currentAttendance.toLocaleString()} <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>/ {currentStadium.capacity.toLocaleString()}</span>
+            <div className="stat-box-number">
+              {currentStadium.currentAttendance.toLocaleString()} <span className="stat-box-subtext">/ {currentStadium.capacity.toLocaleString()}</span>
             </div>
-            <div style={{ fontSize: '0.7rem', color: capacityPercent >= 90 ? 'var(--warning)' : 'var(--success)', marginTop: '2px' }}>● {capacityPercent}% Capacity (Live Telemetry)</div>
+            <div className="stat-box-subtext" style={{ color: capacityPercent >= 90 ? 'var(--warning)' : 'var(--success)' }}>
+              ● {capacityPercent}% Capacity (Live Telemetry)
+            </div>
           </div>
         </div>
 
         {/* AI Crowd Routing Recommendation Banner */}
-        <div style={{ background: 'rgba(8, 13, 20, 0.8)', padding: '16px', borderRadius: '12px', border: '1px solid var(--primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <div className="flex items-center gap-md" style={{ flex: 1, minWidth: '280px' }}>
-            <div style={{ background: 'var(--primary-subtle)', padding: '10px', borderRadius: '10px' }}>
+        <div className="ai-recommendation-box">
+          <div className="ai-rec-content">
+            <div className="ai-rec-icon">
               <Sparkles size={24} color="var(--primary)" />
             </div>
             <div>
               <div className="flex items-center gap-xs">
-                <span style={{ fontWeight: 700, color: 'var(--primary-light)', fontSize: '0.9rem' }}>{t('aiRecommendation')}</span>
+                <span className="text-primary" style={{ fontWeight: 700, fontSize: '0.9rem' }}>{t('aiRecommendation')}</span>
                 {state.profile.accessibleNeeds && <span className="badge badge-warning" style={{ fontSize: '0.65rem' }}>Wheelchair Accessible</span>}
               </div>
               <p style={{ fontSize: '0.85rem', color: '#fff', marginTop: '4px', lineHeight: 1.4 }}>{aiRec.message}</p>
@@ -100,6 +132,102 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
           </button>
         </div>
       </div>
+
+      {/* Digital NFC Smart Ticket Wallet Card */}
+      <div className="card ticket-pass-card animate-fade-in-up">
+        <div className="ticket-header">
+          <div>
+            <div className="flex items-center gap-xs">
+              <span className="badge badge-primary">⚡ SMART NFC MATCH PASS</span>
+              {state.ticketPass.biometricExpress && (
+                <span className="badge" style={{ background: 'var(--accent-subtle)', color: 'var(--accent)', border: 'none', fontSize: '0.7rem' }}>
+                  Facial Recognition Express Enabled
+                </span>
+              )}
+            </div>
+            <h2 style={{ fontSize: '1.25rem', marginTop: '6px', color: '#fff' }}>{state.ticketPass.matchTitle}</h2>
+            <div className="text-secondary" style={{ fontSize: '0.8rem' }}>Matchday Pass ID: <strong>{state.ticketPass.id}</strong></div>
+          </div>
+          <button
+            onClick={toggleQRStatus}
+            className={state.ticketPass.qrStatus === 'valid' ? 'btn btn-primary' : 'btn btn-secondary'}
+            style={{ padding: '8px 16px', fontSize: '0.8rem' }}
+          >
+            {state.ticketPass.qrStatus === 'valid' ? (
+              <>
+                <QrCode size={16} />
+                <span>Simulate NFC Turnstile Scan</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 size={16} color="var(--primary)" />
+                <span>Checked In via Turnstile</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="ticket-section-grid">
+          <div>
+            <div className="ticket-field-label">Assigned Seating</div>
+            <div className="ticket-field-value">{state.ticketPass.section}, {state.ticketPass.row}, {state.ticketPass.seat}</div>
+          </div>
+          <div>
+            <div className="ticket-field-label">AI Recommended Optimal Turnstile</div>
+            <div className="ticket-field-value" style={{ color: 'var(--primary)' }}>{state.ticketPass.assignedGateName}</div>
+          </div>
+          <div>
+            <div className="ticket-field-label">Entry Time Window</div>
+            <div className="ticket-field-value">{state.ticketPass.entryTimeWindow}</div>
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center" style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>
+          <span>🔒 Encrypted FIFA 2026 Telemetry Pass</span>
+          <span>Click button above to simulate gate entry check-in</span>
+        </div>
+      </div>
+
+      {/* Active In-Seat Food Order Tracker Card (If Orders Exist) */}
+      {state.activeOrders.length > 0 && (
+        <div className="order-tracker-card animate-fade-in-up">
+          <div className="flex justify-between items-center" style={{ marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+            <div className="flex items-center gap-sm">
+              <div style={{ background: 'rgba(0, 184, 212, 0.15)', padding: '8px', borderRadius: '8px' }}>
+                <Utensils size={18} color="var(--accent)" />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.95rem' }}>Active Concession Delivery: {state.activeOrders[0].concessionName}</div>
+                <div className="text-secondary" style={{ fontSize: '0.75rem' }}>
+                  Target: {state.activeOrders[0].deliveryLocation} • Total: ${state.activeOrders[0].totalAmount}
+                </div>
+              </div>
+            </div>
+            <span className="badge" style={{ background: 'var(--accent)', color: '#000', fontWeight: 800 }}>
+              {state.activeOrders[0].status.toUpperCase()}
+            </span>
+          </div>
+          <div className="order-progress-bar">
+            <div
+              className="order-progress-fill"
+              style={{
+                width:
+                  state.activeOrders[0].status === 'received'
+                    ? '25%'
+                    : state.activeOrders[0].status === 'preparing'
+                    ? '55%'
+                    : state.activeOrders[0].status === 'delivering'
+                    ? '85%'
+                    : '100%',
+              }}
+            />
+          </div>
+          <div className="flex justify-between items-center" style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', marginTop: '6px' }}>
+            <span>Order ID: {state.activeOrders[0].id}</span>
+            <span>Step-Free Concourse Runner Assigned</span>
+          </div>
+        </div>
+      )}
 
       {/* Quick Action Grid */}
       <div className="grid-3">
@@ -129,16 +257,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
           </div>
         </button>
 
-        <button onClick={() => setActiveTab('transit')} className="card card-interactive" style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <button onClick={() => triggerSOS('medical')} className="card card-interactive" style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '12px', borderColor: 'rgba(239, 68, 68, 0.4)', background: 'rgba(239, 68, 68, 0.06)' }}>
           <div className="flex justify-between items-center">
-            <div style={{ background: 'var(--primary-subtle)', padding: '10px', borderRadius: '10px' }}>
-              <Bus size={20} color="var(--primary)" />
+            <div style={{ background: 'rgba(239, 68, 68, 0.15)', padding: '10px', borderRadius: '10px' }}>
+              <AlertTriangle size={20} color="#ef4444" />
             </div>
-            <span className="badge" style={{ background: 'var(--success)', color: '#000', fontWeight: 800 }}>+{state.profile.ecoPoints} PTS</span>
+            <span className="badge" style={{ background: '#ef4444', color: '#fff', fontWeight: 800 }}>EMERGENCY SOS</span>
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#fff' }}>{t('transit')}</div>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Live metro/train departure timers, post-match crowd diversion, and eco rewards.</p>
+            <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#ef4444' }}>Fan Safety & SOS Hub</div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>One-click medical aid dispatch and step-free emergency evacuation routing.</p>
           </div>
         </button>
       </div>
@@ -151,15 +279,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Real-time turnstile telemetry and AI wait time estimation.</p>
           </div>
           <button onClick={() => setActiveTab('navigate')} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
-            <span>Full Interactive Map</span>
+            <span>Full Interactive Map & Concessions</span>
             <ArrowRight size={14} />
           </button>
         </div>
 
         <div className="grid-2">
           {currentStadium.gates.slice(0, 4).map((gate) => (
-            <div key={gate.id} style={{ background: 'var(--bg-tertiary)', padding: '14px', borderRadius: '10px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div className="flex justify-between items-center">
+            <div key={gate.id} className="gate-card">
+              <div className="gate-card-header">
                 <div className="flex items-center gap-xs">
                   <MapPin size={16} color="var(--primary)" />
                   <span style={{ fontWeight: 700, color: '#fff' }}>{gate.name}</span>
@@ -168,10 +296,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
                   {formatWaitTime(gate.waitTimeMinutes)}
                 </span>
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Serving Sections: {gate.section} {gate.accessible && '♿ Wheelchair Accessible'}</div>
-              {/* Capacity Bar */}
-              <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '99px', overflow: 'hidden' }}>
-                <div style={{ width: `${gate.capacityPercent}%`, height: '100%', background: formatCapacityColor(gate.capacityPercent), transition: 'width 0.5s ease' }} />
+              <div className="text-secondary" style={{ fontSize: '0.75rem' }}>Serving Sections: {gate.section} {gate.accessible && '♿ Wheelchair Accessible'}</div>
+              <div className="capacity-bar-track">
+                <div className="capacity-bar-fill" style={{ width: `${gate.capacityPercent}%`, background: formatCapacityColor(gate.capacityPercent) }} />
               </div>
             </div>
           ))}

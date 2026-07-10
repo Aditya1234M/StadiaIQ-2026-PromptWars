@@ -2,7 +2,7 @@
  * @description Global application context providing dual-mode switching (Fan vs Staff), multilingual support, and secure local storage state.
  */
 import React, { createContext, useContext, useState, useEffect, useMemo, type ReactNode } from 'react';
-import type { AppState, UserMode, LanguageCode, Stadium, Incident, ChatMessage, UserProfile } from '../types/stadium';
+import type { AppState, UserMode, LanguageCode, Stadium, Incident, ChatMessage, UserProfile, TicketPass, FoodOrder, SOSAlert, TournamentBadge } from '../types/stadium';
 import { STADIUMS, INITIAL_INCIDENTS, TRANSLATIONS } from '../data/stadiumData';
 
 interface AppContextType {
@@ -17,6 +17,12 @@ interface AppContextType {
   updateIncidentStatus: (id: string, status: Incident['status'], team?: string) => void;
   addChatMessage: (msg: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
   addEcoPoints: (points: number) => void;
+  toggleQRStatus: () => void;
+  placeFoodOrder: (order: Omit<FoodOrder, 'id' | 'status' | 'timestamp'>) => void;
+  updateOrderStatus: (orderId: string, status: FoodOrder['status']) => void;
+  triggerSOS: (type: SOSAlert['type'], userLocation?: string) => void;
+  cancelSOS: () => void;
+  unlockBadge: (stadiumId: string) => void;
 }
 
 const STORAGE_KEY = 'stadia_iq_state_2026';
@@ -29,6 +35,51 @@ const INITIAL_PROFILE: UserProfile = {
   ecoPoints: 350,
   streak: 4,
 };
+
+const INITIAL_TICKET: TicketPass = {
+  id: 'TKT-FIFA-2026-8942',
+  matchTitle: 'FIFA World Cup 2026 — Final Match',
+  stadiumId: 'metlife',
+  stadiumName: 'MetLife Stadium',
+  section: 'Section 114',
+  row: 'Row F',
+  seat: 'Seat 12',
+  assignedGateId: 'g3',
+  assignedGateName: 'Gate C (MetLife West)',
+  qrStatus: 'valid',
+  biometricExpress: true,
+  entryTimeWindow: '18:30 - 19:30 EST',
+};
+
+const INITIAL_BADGES: TournamentBadge[] = [
+  {
+    id: 'badge-metlife',
+    title: 'Final Match Witness',
+    description: 'Checked in at MetLife Stadium for the FIFA 2026 Championship Final.',
+    stadiumId: 'metlife',
+    iconName: 'Trophy',
+    unlocked: true,
+    pointsBonus: 200,
+  },
+  {
+    id: 'badge-azteca',
+    title: 'Azteca Opening Explorer',
+    description: 'Checked in at Estadio Azteca for the historic Opening Match.',
+    stadiumId: 'azteca',
+    iconName: 'Flame',
+    unlocked: false,
+    pointsBonus: 150,
+  },
+  {
+    id: 'badge-sofi',
+    title: 'West Coast Pioneer',
+    description: 'Checked in at SoFi Stadium in Los Angeles, USA.',
+    stadiumId: 'sofi',
+    iconName: 'Sun',
+    unlocked: false,
+    pointsBonus: 150,
+  },
+];
 
 const INITIAL_STATE: AppState = {
   mode: 'fan',
@@ -46,6 +97,22 @@ const INITIAL_STATE: AppState = {
     },
   ],
   savedRoutes: [],
+  ticketPass: INITIAL_TICKET,
+  activeOrders: [
+    {
+      id: 'ORD-1049',
+      concessionId: 'c1',
+      concessionName: 'Crescent Halal Grill',
+      items: [{ name: 'Halal Chicken Kebab Combo', quantity: 1, price: 18 }],
+      totalAmount: 18,
+      deliveryOption: 'in-seat',
+      deliveryLocation: 'Section 114, Row F, Seat 12',
+      status: 'delivering',
+      timestamp: '6 mins ago',
+    },
+  ],
+  activeSOS: null,
+  badges: INITIAL_BADGES,
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -59,9 +126,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return {
           ...INITIAL_STATE,
           ...parsed,
-          // Guarantee array safety
           incidents: Array.isArray(parsed.incidents) ? parsed.incidents : INITIAL_INCIDENTS,
           chatHistory: Array.isArray(parsed.chatHistory) ? parsed.chatHistory : INITIAL_STATE.chatHistory,
+          ticketPass: parsed.ticketPass || INITIAL_TICKET,
+          activeOrders: Array.isArray(parsed.activeOrders) ? parsed.activeOrders : INITIAL_STATE.activeOrders,
+          activeSOS: parsed.activeSOS || null,
+          badges: Array.isArray(parsed.badges) ? parsed.badges : INITIAL_BADGES,
         };
       }
     } catch (e) {
@@ -98,7 +168,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const setSelectedStadium = (selectedStadiumId: string) => {
-    setState((prev) => ({ ...prev, selectedStadiumId }));
+    const targetStad = STADIUMS.find((s) => s.id === selectedStadiumId) || STADIUMS[0];
+    const optimalGate = targetStad.gates.find((g) => g.status === 'optimal') || targetStad.gates[0];
+    
+    setState((prev) => ({
+      ...prev,
+      selectedStadiumId,
+      ticketPass: {
+        ...prev.ticketPass,
+        stadiumId: targetStad.id,
+        stadiumName: targetStad.name,
+        matchTitle: targetStad.matchTitle,
+        assignedGateId: optimalGate ? optimalGate.id : 'g1',
+        assignedGateName: optimalGate ? optimalGate.name : targetStad.gates[0]?.name || 'Entry A',
+      },
+    }));
   };
 
   const updateProfile = (updates: Partial<UserProfile>) => {
@@ -158,6 +242,75 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }));
   };
 
+  const toggleQRStatus = () => {
+    setState((prev) => ({
+      ...prev,
+      ticketPass: {
+        ...prev.ticketPass,
+        qrStatus: prev.ticketPass.qrStatus === 'valid' ? 'checked-in' : 'valid',
+      },
+    }));
+  };
+
+  const placeFoodOrder = (order: Omit<FoodOrder, 'id' | 'status' | 'timestamp'>) => {
+    const newOrder: FoodOrder = {
+      ...order,
+      id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
+      status: 'received',
+      timestamp: 'Just now',
+    };
+    setState((prev) => ({
+      ...prev,
+      activeOrders: [newOrder, ...prev.activeOrders],
+    }));
+  };
+
+  const updateOrderStatus = (orderId: string, status: FoodOrder['status']) => {
+    setState((prev) => ({
+      ...prev,
+      activeOrders: prev.activeOrders.map((ord) => (ord.id === orderId ? { ...ord, status } : ord)),
+    }));
+  };
+
+  const triggerSOS = (type: SOSAlert['type'], userLocation?: string) => {
+    const alert: SOSAlert = {
+      id: `SOS-${Date.now()}`,
+      active: true,
+      type,
+      userLocation: userLocation || `${state.profile.ticketSection} (${currentStadium.name})`,
+      dispatchStatus: 'dispatched',
+      evacuationPath: [
+        `Exit ${state.profile.ticketSection.split(',')[0]} via Level 1 Priority Elevator`,
+        'Follow Step-Free Green LED Concourse Floor Indicators',
+        'Proceed directly to North Emergency Assembly Point (Gate C / Medical Hub)',
+      ],
+    };
+    setState((prev) => ({ ...prev, activeSOS: alert }));
+  };
+
+  const cancelSOS = () => {
+    setState((prev) => ({ ...prev, activeSOS: null }));
+  };
+
+  const unlockBadge = (stadiumId: string) => {
+    setState((prev) => {
+      const alreadyUnlocked = prev.badges.find((b) => b.stadiumId === stadiumId)?.unlocked;
+      if (alreadyUnlocked) return prev;
+      
+      const badgeToUnlock = prev.badges.find((b) => b.stadiumId === stadiumId);
+      const bonus = badgeToUnlock ? badgeToUnlock.pointsBonus : 100;
+
+      return {
+        ...prev,
+        profile: {
+          ...prev.profile,
+          ecoPoints: prev.profile.ecoPoints + bonus,
+        },
+        badges: prev.badges.map((b) => (b.stadiumId === stadiumId ? { ...b, unlocked: true } : b)),
+      };
+    });
+  };
+
   const value = useMemo(
     () => ({
       state,
@@ -171,6 +324,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       updateIncidentStatus,
       addChatMessage,
       addEcoPoints,
+      toggleQRStatus,
+      placeFoodOrder,
+      updateOrderStatus,
+      triggerSOS,
+      cancelSOS,
+      unlockBadge,
     }),
     [state, currentStadium, t]
   );

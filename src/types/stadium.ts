@@ -92,6 +92,58 @@ export interface UserProfile {
   streak: number;
 }
 
+export interface TicketPass {
+  id: string;
+  matchTitle: string;
+  stadiumId: string;
+  stadiumName: string;
+  section: string;
+  row: string;
+  seat: string;
+  assignedGateId: string;
+  assignedGateName: string;
+  qrStatus: 'valid' | 'checked-in';
+  biometricExpress: boolean;
+  entryTimeWindow: string;
+}
+
+export interface FoodOrderItem {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+export interface FoodOrder {
+  id: string;
+  concessionId: string;
+  concessionName: string;
+  items: FoodOrderItem[];
+  totalAmount: number;
+  deliveryOption: 'in-seat' | 'express-pickup';
+  deliveryLocation: string;
+  status: 'received' | 'preparing' | 'delivering' | 'completed';
+  timestamp: string;
+}
+
+export interface SOSAlert {
+  id: string;
+  active: boolean;
+  type: 'medical' | 'security' | 'evacuation';
+  userLocation: string;
+  dispatchStatus: 'dispatched' | 'arriving' | 'none';
+  evacuationPath: string[];
+}
+
+export interface TournamentBadge {
+  id: string;
+  title: string;
+  description: string;
+  stadiumId: string;
+  iconName: string;
+  unlocked: boolean;
+  pointsBonus: number;
+}
+
 export interface AppState {
   mode: UserMode;
   language: LanguageCode;
@@ -100,4 +152,9 @@ export interface AppState {
   incidents: Incident[];
   chatHistory: ChatMessage[];
   savedRoutes: string[];
+  ticketPass: TicketPass;
+  activeOrders: FoodOrder[];
+  activeSOS: SOSAlert | null;
+  badges: TournamentBadge[];
 }
+
