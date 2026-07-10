@@ -1,25 +1,21 @@
 /**
- * @description Global application context providing dual-mode switching (Fan vs Staff), multilingual support, and secure local storage state.
+ * @description Global application context providing Fan Persona state management, multilingual support, and secure local storage persistence.
  */
 import React, { createContext, useContext, useState, useEffect, useMemo, type ReactNode } from 'react';
-import type { AppState, UserMode, LanguageCode, Stadium, Incident, ChatMessage, UserProfile, TicketPass, FoodOrder, SOSAlert, TournamentBadge } from '../types/stadium';
+import type { AppState, LanguageCode, Stadium, ChatMessage, UserProfile, TicketPass, FoodOrder, SOSAlert, TournamentBadge } from '../types/stadium';
 import { STADIUMS, INITIAL_INCIDENTS, TRANSLATIONS } from '../data/stadiumData';
 
 interface AppContextType {
   state: AppState;
   currentStadium: Stadium;
   t: (key: string) => string;
-  setMode: (mode: UserMode) => void;
   setLanguage: (lang: LanguageCode) => void;
   setSelectedStadium: (id: string) => void;
   updateProfile: (updates: Partial<UserProfile>) => void;
-  addIncident: (incident: Omit<Incident, 'id' | 'timestamp'>) => void;
-  updateIncidentStatus: (id: string, status: Incident['status'], team?: string) => void;
   addChatMessage: (msg: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
   addEcoPoints: (points: number) => void;
   toggleQRStatus: () => void;
   placeFoodOrder: (order: Omit<FoodOrder, 'id' | 'status' | 'timestamp'>) => void;
-  updateOrderStatus: (orderId: string, status: FoodOrder['status']) => void;
   triggerSOS: (type: SOSAlert['type'], userLocation?: string) => void;
   cancelSOS: () => void;
   unlockBadge: (stadiumId: string) => void;
@@ -160,9 +156,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
   }, [state.language]);
 
-  const setMode = (mode: UserMode) => {
-    setState((prev) => ({ ...prev, mode }));
-  };
+
 
   const setLanguage = (language: LanguageCode) => {
     setState((prev) => ({ ...prev, language }));
@@ -193,33 +187,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }));
   };
 
-  const addIncident = (incident: Omit<Incident, 'id' | 'timestamp'>) => {
-    const newInc: Incident = {
-      ...incident,
-      id: `inc-${Date.now()}`,
-      timestamp: 'Just now',
-    };
-    setState((prev) => ({
-      ...prev,
-      incidents: [newInc, ...prev.incidents],
-    }));
-  };
 
-  const updateIncidentStatus = (id: string, status: Incident['status'], team?: string) => {
-    setState((prev) => ({
-      ...prev,
-      incidents: prev.incidents.map((inc) => {
-        if (inc.id === id) {
-          return {
-            ...inc,
-            status,
-            assignedTeam: team || inc.assignedTeam,
-          };
-        }
-        return inc;
-      }),
-    }));
-  };
 
   const addChatMessage = (msg: Omit<ChatMessage, 'id' | 'timestamp'>) => {
     const newMsg: ChatMessage = {
@@ -266,12 +234,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }));
   };
 
-  const updateOrderStatus = (orderId: string, status: FoodOrder['status']) => {
-    setState((prev) => ({
-      ...prev,
-      activeOrders: prev.activeOrders.map((ord) => (ord.id === orderId ? { ...ord, status } : ord)),
-    }));
-  };
+
 
   const triggerSOS = (type: SOSAlert['type'], userLocation?: string) => {
     const alert: SOSAlert = {
@@ -317,17 +280,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       state,
       currentStadium,
       t,
-      setMode,
       setLanguage,
       setSelectedStadium,
       updateProfile,
-      addIncident,
-      updateIncidentStatus,
       addChatMessage,
       addEcoPoints,
       toggleQRStatus,
       placeFoodOrder,
-      updateOrderStatus,
       triggerSOS,
       cancelSOS,
       unlockBadge,
