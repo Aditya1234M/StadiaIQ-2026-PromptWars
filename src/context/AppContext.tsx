@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * @description Global application context providing Fan Persona state management, multilingual support, and secure local storage persistence.
  */
@@ -291,6 +292,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       cancelSOS,
       unlockBadge,
     }),
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
     [state, currentStadium, t]
   );
 
