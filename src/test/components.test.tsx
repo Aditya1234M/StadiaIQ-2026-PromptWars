@@ -15,13 +15,13 @@ describe('StadiaIQ 2026 UI Component Integration Tests', () => {
     expect(screen.getByText(/AI Crowd Routing Recommendation/i)).toBeInTheDocument();
   });
 
-  it('allows toggling between Fan Mode and Staff Command Center', () => {
+  it('displays Fan NFC Match Pass and allows simulating turnstile scan', () => {
     render(<App />);
-    const switchBtn = screen.getByRole('button', { name: /Current mode: fan/i });
-    expect(switchBtn).toBeInTheDocument();
+    const nfcBtn = screen.getByRole('button', { name: /Simulate NFC Turnstile Scan/i });
+    expect(nfcBtn).toBeInTheDocument();
     
-    // Click to switch to staff mode
-    fireEvent.click(switchBtn);
-    expect(screen.getByText(/Switch to Fan Mode/i)).toBeInTheDocument();
+    // Click to simulate check-in scan
+    fireEvent.click(nfcBtn);
+    expect(screen.getByText(/Checked In via Turnstile/i)).toBeInTheDocument();
   });
 });

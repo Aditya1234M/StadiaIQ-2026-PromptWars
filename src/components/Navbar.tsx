@@ -1,11 +1,11 @@
 /**
- * @description Main application navigation bar featuring stadium selection, dual-mode toggle, multilingual switcher, and navigation tabs.
+ * @description Main application navigation bar featuring stadium selection, multilingual switcher, and Fan Persona navigation tabs.
  */
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import { STADIUMS } from '../data/stadiumData';
 import type { LanguageCode } from '../types/stadium';
-import { Trophy, ShieldAlert, Globe, MapPin, Sparkles, LayoutDashboard, Map, MessageSquare, Bus, Sliders } from 'lucide-react';
+import { Trophy, Globe, MapPin, LayoutDashboard, Map, MessageSquare, Bus } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: string;
@@ -13,7 +13,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
-  const { state, t, setMode, setLanguage, setSelectedStadium } = useApp();
+  const { state, t, setLanguage, setSelectedStadium } = useApp();
 
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setLanguage(e.target.value as LanguageCode);
@@ -21,16 +21,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
 
   const handleStadiumChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedStadium(e.target.value);
-  };
-
-  const toggleMode = () => {
-    const nextMode = state.mode === 'fan' ? 'staff' : 'fan';
-    setMode(nextMode);
-    if (nextMode === 'staff' && activeTab !== 'staff') {
-      setActiveTab('staff');
-    } else if (nextMode === 'fan' && activeTab === 'staff') {
-      setActiveTab('dashboard');
-    }
   };
 
   return (
@@ -50,7 +40,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             </div>
           </div>
 
-          {/* Controls: Stadium, Mode, Language */}
+          {/* Controls: Stadium & Language */}
           <div className="flex items-center gap-sm" style={{ flexWrap: 'wrap' }}>
             {/* Stadium Selector */}
             <div className="flex items-center gap-xs" style={{ background: 'var(--bg-tertiary)', padding: '4px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}>
@@ -63,23 +53,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                 ))}
               </select>
             </div>
-
-            {/* Dual-Mode Toggle */}
-            <button
-              onClick={toggleMode}
-              className="btn"
-              style={{
-                padding: '6px 12px',
-                fontSize: '0.75rem',
-                background: state.mode === 'staff' ? 'rgba(239, 68, 68, 0.15)' : 'var(--primary-subtle)',
-                color: state.mode === 'staff' ? '#ef4444' : 'var(--primary-light)',
-                border: `1px solid ${state.mode === 'staff' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(0, 229, 153, 0.4)'}`,
-              }}
-              aria-label={`Current mode: ${state.mode}. Click to switch.`}
-            >
-              {state.mode === 'staff' ? <ShieldAlert size={14} /> : <Sparkles size={14} />}
-              <span>{state.mode === 'staff' ? t('switchFan') : t('switchStaff')}</span>
-            </button>
 
             {/* Language Selector */}
             <div className="flex items-center gap-xs" style={{ background: 'var(--bg-tertiary)', padding: '4px 8px', borderRadius: '8px', border: '1px solid var(--border)' }}>
@@ -95,7 +68,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
           </div>
         </div>
 
-        {/* Navigation Tabs */}
+        {/* Navigation Tabs (Fan Persona Focused) */}
         <nav className="flex items-center gap-xs" style={{ overflowX: 'auto', paddingBottom: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '8px' }} role="navigation" aria-label="Main navigation">
           <button onClick={() => setActiveTab('dashboard')} className="btn" style={{ padding: '8px 14px', background: activeTab === 'dashboard' ? 'var(--primary-subtle)' : 'transparent', color: activeTab === 'dashboard' ? 'var(--primary-light)' : 'var(--text-secondary)', borderBottom: activeTab === 'dashboard' ? '2px solid var(--primary)' : '2px solid transparent', borderRadius: '6px 6px 0 0' }}>
             <LayoutDashboard size={16} />
@@ -114,15 +87,9 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             <Bus size={16} />
             <span>{t('transit')}</span>
           </button>
-          {state.mode === 'staff' && (
-            <button onClick={() => setActiveTab('staff')} className="btn" style={{ padding: '8px 14px', background: activeTab === 'staff' ? 'rgba(239, 68, 68, 0.15)' : 'transparent', color: activeTab === 'staff' ? '#ef4444' : 'var(--text-secondary)', borderBottom: activeTab === 'staff' ? '2px solid #ef4444' : '2px solid transparent', borderRadius: '6px 6px 0 0' }}>
-              <Sliders size={16} />
-              <span>{t('staff')}</span>
-              <span style={{ fontSize: '0.65rem', background: '#ef4444', color: '#fff', padding: '1px 6px', borderRadius: '99px', fontWeight: 800 }}>OPS</span>
-            </button>
-          )}
         </nav>
       </div>
     </header>
   );
 };
+

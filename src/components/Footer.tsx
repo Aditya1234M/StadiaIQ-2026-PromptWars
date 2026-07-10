@@ -6,7 +6,7 @@ import { useApp } from '../context/AppContext';
 import { Shield, Heart, Zap, Award } from 'lucide-react';
 
 export const Footer: React.FC = () => {
-  const { currentStadium, state } = useApp();
+  const { currentStadium } = useApp();
 
   return (
     <footer className="footer-layout">
@@ -19,7 +19,7 @@ export const Footer: React.FC = () => {
               <span className="text-secondary" style={{ fontSize: '0.75rem' }}>• Smart Stadiums & Tournament Operations</span>
             </div>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-              Connected to live telemetry at <strong>{currentStadium.name}</strong> ({currentStadium.city}). Mode: <strong style={{ color: state.mode === 'staff' ? '#ef4444' : 'var(--primary)' }}>{state.mode.toUpperCase()}</strong>.
+              Connected to live telemetry at <strong>{currentStadium.name}</strong> ({currentStadium.city}). Target Persona: <strong style={{ color: 'var(--primary)' }}>INTERNATIONAL FANS (80,000+ Attendees)</strong>.
             </p>
           </div>
 

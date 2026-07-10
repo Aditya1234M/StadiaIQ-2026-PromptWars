@@ -126,6 +126,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return {
           ...INITIAL_STATE,
           ...parsed,
+          mode: 'fan',
           incidents: Array.isArray(parsed.incidents) ? parsed.incidents : INITIAL_INCIDENTS,
           chatHistory: Array.isArray(parsed.chatHistory) ? parsed.chatHistory : INITIAL_STATE.chatHistory,
           ticketPass: parsed.ticketPass || INITIAL_TICKET,

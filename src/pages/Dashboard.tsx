@@ -73,23 +73,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
         </div>
       )}
 
-      {/* Staff Mode Banner Alert */}
-      {state.mode === 'staff' && (
-        <div className="card" style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-          <div className="flex items-center gap-sm">
-            <AlertTriangle size={20} color="#ef4444" />
-            <div>
-              <div style={{ fontWeight: 700, color: '#ef4444' }}>Staff Command Mode Active</div>
-              <div style={{ fontSize: '0.8rem', color: '#fff' }}>3 predictive AI bottleneck alerts require operational review at {currentStadium.name}.</div>
-            </div>
-          </div>
-          <button onClick={() => setActiveTab('staff')} className="btn btn-danger" style={{ padding: '6px 14px', fontSize: '0.8rem' }}>
-            <span>Open Command Center</span>
-            <ArrowRight size={14} />
-          </button>
-        </div>
-      )}
-
       {/* Hero Match Card */}
       <div className="card hero-card">
         <div className="hero-header">
